@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-17
+
 ### Added
 
 - One device per KitchenOwl shopping list (items to buy) and one per
@@ -25,4 +27,5 @@ the notes of the version's GitHub Release.
   transport badge per device.
 - Every text in English, French, German and Spanish, documentation included.
 
-[Unreleased]: https://github.com/guim31/gladys-kitchenowl/commits/main
+[Unreleased]: https://github.com/guim31/gladys-kitchenowl/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-kitchenowl/releases/tag/v1.0.0
