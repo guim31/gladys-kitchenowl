@@ -16,7 +16,8 @@
 // -----------------------------------------------------------------------------
 
 import { KitchenOwlHub, WIDGET_KEY } from './hub.js';
-import { pick } from './texts.js';
+import { ERROR_KINDS } from './kitchenowl/client.js';
+import { ERROR_TEXT, pick } from './texts.js';
 
 // Action keys of the buttons: permanent once published (unique, the core
 // drops a button whose key is taken).
@@ -141,7 +142,7 @@ function checkButton(list, language) {
           label: TEXT.item,
           options: list.items.slice(0, MAX_OPTIONS).map((item) => ({
             value: String(item.id),
-            label: { en: fit(item.name, 60) },
+            label: { en: fit(item.name, 40) },
           })),
         },
       ],
@@ -165,7 +166,16 @@ async function get(hub, { settings, language = 'en' }) {
   }
   const components = [];
   if (hub.error) {
-    components.push({ type: 'text', variant: 'caption', text: t(TEXT.stale, language) });
+    components.push({
+      type: 'text',
+      variant: 'caption',
+      text: fit(
+        hub.error.kind === ERROR_KINDS.UNREACHABLE
+          ? t(TEXT.stale, language)
+          : `KitchenOwl${language === 'fr' ? ' : ' : ': '}${t(ERROR_TEXT[hub.error.kind], language)}`,
+        80,
+      ),
+    });
   }
   components.push({
     type: 'value',

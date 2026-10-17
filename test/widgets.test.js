@@ -160,3 +160,12 @@ test('every list a widget can show is a published device', async (t) => {
     assert.ok(devices.includes(listId(w.gladys, list.id).device));
   }
 });
+
+test('a refused token is not shown as an outage in the widget', async (t) => {
+  const w = await world(t);
+  w.server.token = 'another.token.now';
+  await w.hub.poll();
+  assert.deepEqual(texts(await content(w)), [
+    'KitchenOwl: token refused: create a new long-lived token in KitchenOwl',
+  ]);
+});

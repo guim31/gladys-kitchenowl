@@ -257,7 +257,9 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   remise) et `created_by` (id du membre). La clé `id@created_at` détecte un article coché puis remis.
 - `add-item-by-name` réutilise l'article du foyer de même nom, mais la comparaison passe par le
   `lower()` de SQLite, **ASCII seulement** : « oeufs » ou « œufs » ne retrouvent pas « Œufs » et
-  créeraient un doublon. L'intégration compare elle-même (accents et casse ignorés) avant d'ajouter.
+  créeraient un doublon au catalogue. L'intégration compare elle-même (accents et casse ignorés)
+  aux articles de la liste **et aux 120 derniers cochés** (`recentItems`, `recent_limit=120`), puis
+  envoie le nom exact trouvé.
   Un article déjà sur la liste est ignoré **sans mettre à jour sa description** : passer par
   `POST /api/shoppinglist/{id}/item/{itemId}` `{ description }`.
 - `DELETE /api/shoppinglist/{id}/item` répond `{ msg: "DONE" }` même si l'article n'y est pas.

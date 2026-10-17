@@ -6,7 +6,7 @@
 // API version 124, October 2026).
 //
 //   GET    /api/household                                 households of the token user
-//   GET    /api/household/:id/shoppinglist?recent_limit=1 lists, items included
+//   GET    /api/household/:id/shoppinglist?recent_limit=N lists, items included
 //   GET    /api/household/:id/planner                     planned recipes
 //   POST   /api/shoppinglist/:id/add-item-by-name         { name, description }
 //   POST   /api/shoppinglist/:id/item/:itemId             { description }
@@ -129,10 +129,13 @@ export class KitchenOwlClient {
     return answer;
   }
 
-  /** The lists of a household, their items included (one recent item, unused). */
-  async shoppingLists(householdId) {
+  /**
+   * The lists of a household, their items included, and the last `recent`
+   * items checked off (1 to 120: the household catalog seen through them).
+   */
+  async shoppingLists(householdId, recent = 1) {
     const answer = await this.call(
-      `/api/household/${encodeURIComponent(householdId)}/shoppinglist?recent_limit=1`,
+      `/api/household/${encodeURIComponent(householdId)}/shoppinglist?recent_limit=${recent}`,
     );
     return Array.isArray(answer) ? answer : [];
   }

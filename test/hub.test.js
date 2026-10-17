@@ -268,3 +268,60 @@ test('a new configuration reads the new server at once', async (t) => {
   assert.equal(w.fake.discoveredDevices.length, 3);
   assert.deepEqual(w.fake.connectionStatus, { connected: true });
 });
+
+test('add_item reuses the catalog name of an item checked off lately (no "oeufs" twin)', async (t) => {
+  const w = await world(t);
+  w.server.list(1).recentItems = [{ ...w.server.list(1).items[2] }];
+  w.server.removeFrom(1, 3);
+  await w.hub.poll();
+  const ack = await w.fake.sceneAction('add_item', { item: 'oeufs' });
+  assert.deepEqual(ack.data.outputs, {
+    item: 'Œufs',
+    list_name: 'Default',
+    already_on_list: false,
+  });
+  assert.ok(
+    w.server.list(1).items.some((item) => item.id === 3),
+    'the same catalog item',
+  );
+  assert.equal(w.server.catalog.filter((item) => /^.?.?ufs$/i.test(item.name)).length, 1);
+  assert.ok(w.server.requests.some((r) => r.search === '?recent_limit=120'));
+});
+
+test('an item added from Gladys is "from Gladys" even if a reading sees it before the answer', async (t) => {
+  const w = await world(t);
+  const handle = w.server.handle.bind(w.server);
+  t.mock.method(w.server, 'handle', async (url, options) => {
+    const answer = handle(url, options);
+    if (url.endsWith('/add-item-by-name')) {
+      // A timer reading runs between the server's write and its answer.
+      await w.hub.read();
+    }
+    return answer;
+  });
+  await w.fake.sceneAction('add_item', { item: 'Beurre' });
+  await w.hub.poll();
+  assert.deepEqual(
+    added(w).map((event) => [event.data.item, event.data.from_gladys]),
+    [['Beurre', true]],
+  );
+});
+
+test('before any successful reading, an action says why instead of "no list"', async (t) => {
+  const server = new FakeKitchenOwl();
+  server.online = false;
+  const w = await world(t, { server });
+  const ack = await w.fake.sceneAction('add_item', { item: 'Beurre' });
+  assert.equal(ack.success, false);
+  assert.match(ack.error, /KitchenOwl does not answer/);
+});
+
+test('a device added during an outage gets its "unreachable" badge again', async (t) => {
+  const w = await world(t);
+  w.server.online = false;
+  await w.hub.poll();
+  const before = w.fake.transports.length;
+  await w.fake.deviceCreated(w.fake.discoveredDevices[0]);
+  assert.equal(w.fake.transports.length, before + 1);
+  assert.equal(w.fake.transports.at(-1).transport, 'unreachable');
+});

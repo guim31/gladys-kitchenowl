@@ -48,6 +48,10 @@ export function parseLists(raw, householdId) {
           addedAt: Number.isFinite(item.created_at) ? item.created_at : null,
           addedBy: int(item.created_by),
         })),
+      // Names of the items checked off lately: still in the household catalog.
+      recent: (Array.isArray(list.recentItems) ? list.recentItems : [])
+        .map((item) => text(item?.name))
+        .filter(Boolean),
     }))
     .sort((a, b) => a.id - b.id);
 }
@@ -133,6 +137,12 @@ export function findItem(list, name) {
     return null;
   }
   return list.items.find((item) => normalizeName(item.name) === wanted) ?? null;
+}
+
+/** The catalog name matching this one (case and accents ignored), or null. */
+export function findRecentName(list, name) {
+  const wanted = normalizeName(name);
+  return list?.recent?.find((recent) => normalizeName(recent) === wanted) ?? null;
 }
 
 /** The key of an item on a list: a new key each time it is put on the list again. */

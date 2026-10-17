@@ -88,7 +88,7 @@ test('real answers: households, lists with their items, the planner', () => {
 test('garbage in, nothing out', () => {
   assert.deepEqual(parseHouseholds({ msg: 'x' }), []);
   assert.deepEqual(parseLists([{ id: 'x' }, { id: 3, items: [{ id: 1 }] }], 1), [
-    { id: 3, householdId: 1, name: '#3', items: [] },
+    { id: 3, householdId: 1, name: '#3', items: [], recent: [] },
   ]);
   assert.deepEqual(parsePlanner([{ cooking_date: 0 }]), []);
 });

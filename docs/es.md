@@ -99,7 +99,8 @@ mientras estaba detenida se dispara en el siguiente arranque). Un artículo
 marcado y vuelto a poner cuenta de nuevo. Veinte eventos como máximo por
 lista y por lectura (una receta que añade treinta ingredientes).
 
-- Filtros: **Lista de la compra** (vacía: cualquiera), **Nombre del
+- Filtros: **Lista de la compra** (un dispositivo de lista; un dispositivo
+  de hogar nunca coincide; vacía: cualquiera), **Nombre del
   artículo** (nombre exacto, vacío: cualquiera).
 - Variables: `item` (artículo), `description`, `list_name` (lista),
   `added_by` (el nombre en KitchenOwl del miembro) y `from_gladys`

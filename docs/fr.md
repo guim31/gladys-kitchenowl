@@ -103,7 +103,8 @@ pendant qu'elle était arrêtée déclenche au démarrage suivant). Un article
 coché puis remis compte à nouveau. Vingt événements au plus par liste et par
 lecture (une recette qui ajoute trente ingrédients).
 
-- Filtres : **Liste de courses** (vide : toutes), **Nom de l'article** (nom
+- Filtres : **Liste de courses** (un appareil de liste ; un appareil de
+  foyer ne correspond jamais ; vide : toutes), **Nom de l'article** (nom
   exact, vide : tous).
 - Variables : `item` (article), `description`, `list_name` (liste),
   `added_by` (le nom KitchenOwl du membre) et `from_gladys` (vrai quand

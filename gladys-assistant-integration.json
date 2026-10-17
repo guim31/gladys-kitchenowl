@@ -267,6 +267,12 @@
             "fr": "Liste de courses (vide : toutes)",
             "de": "Einkaufsliste (leer: beliebig)",
             "es": "Lista de la compra (vacía: cualquiera)"
+          },
+          "description": {
+            "en": "A list device: a household device never matches here.",
+            "fr": "Un appareil de liste : un appareil de foyer ne correspond jamais ici.",
+            "de": "Ein Listengerät: Ein Haushaltsgerät passt hier nie.",
+            "es": "Un dispositivo de lista: un dispositivo de hogar nunca coincide aquí."
           }
         },
         {

@@ -91,7 +91,8 @@ seen across restarts (an item added while it was stopped fires at the next
 start). An item checked off then put back counts again. Twenty events per
 list and per reading at most (a recipe that adds thirty ingredients).
 
-- Filters: **Shopping list** (empty: any), **Item name** (exact name, empty:
+- Filters: **Shopping list** (a list device; a household device never
+  matches; empty: any), **Item name** (exact name, empty:
   any).
 - Variables: `item`, `description`, `list_name`, `added_by` (the KitchenOwl
   name of the member) and `from_gladys` (true when the item was added by a

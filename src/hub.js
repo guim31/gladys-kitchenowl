@@ -17,6 +17,7 @@ import { buildDevices, deviceStates, householdIds, listIds } from './devices.js'
 import { ERROR_KINDS, KitchenOwlClient, KitchenOwlError } from './kitchenowl/client.js';
 import {
   findItem,
+  findRecentName,
   itemKey,
   localDate,
   mealsOn,
@@ -70,6 +71,8 @@ const REFRESH_WAIT_MS = 3_000;
 // KitchenOwl cuts item names at 128 characters.
 const ITEM_NAME_MAX = 128;
 const DESCRIPTION_MAX = 200;
+// Items checked off lately read before an addition (the API caps it at 120).
+const RECENT_ITEMS = 120;
 
 export class KitchenOwlHub {
   /**
@@ -263,12 +266,19 @@ export class KitchenOwlHub {
       }
       this.failed(err, now);
     }
+    // A new configuration during the publications: stop, the new server is read.
+    const current = () => client === this.client;
     if (this.readAt > 0) {
       await this.publishDevices();
-      if (!this.error) {
+      if (!this.error && current()) {
         await this.publishStates();
-        await this.fireEvents(now);
+        if (current()) {
+          await this.fireEvents(now);
+        }
       }
+    }
+    if (!current()) {
+      return;
     }
     await this.publishTransports();
     await this.publishConnectionStatus();
@@ -383,6 +393,9 @@ export class KitchenOwlHub {
   /** The user added a device: the states sent before were dropped by Gladys. */
   async onDeviceCreated(device) {
     this.gladys.forgetPublishedStates?.(device?.external_id);
+    // Its transport was sent before it existed too.
+    this.transports.delete(device?.external_id);
+    await this.publishTransports();
     if (!this.error && this.readAt > 0) {
       await this.publishStates();
     }
@@ -575,6 +588,10 @@ export class KitchenOwlHub {
     if (this.readAt === 0) {
       await this.poll();
     }
+    if (this.readAt === 0 && this.error) {
+      // Never read: the lists are unknown, not missing. Say why.
+      throw new KitchenOwlError(this.error.kind, this.error.message);
+    }
     const target = Number.isInteger(listId)
       ? (this.lists.find((entry) => entry.id === listId) ?? null)
       : this.listOf(device || null);
@@ -585,7 +602,7 @@ export class KitchenOwlHub {
       throw new Error(pick(ACTION_TEXT.unknownList, language));
     }
     const lists = parseLists(
-      await this.client.shoppingLists(target.householdId),
+      await this.client.shoppingLists(target.householdId, RECENT_ITEMS),
       target.householdId,
     );
     const list = lists.find((entry) => entry.id === target.id);
@@ -637,9 +654,14 @@ export class KitchenOwlHub {
         }
         result = { item: existing.name, list, alreadyOnList: true };
       } else {
-        await this.client.addItem(list.id, wanted, detail);
-        this.ownAdds.set(`${list.id}:${normalizeName(wanted)}`, this.now());
-        result = { item: wanted, list, alreadyOnList: false };
+        // The catalog name of an item checked off lately ("Œufs" for "oeufs"):
+        // KitchenOwl folds ASCII case only, and would create a second item.
+        const exact = findRecentName(list, wanted) ?? wanted;
+        // Before the request: a reading running meanwhile may see the item
+        // first, and the event must still say it came from Gladys.
+        this.ownAdds.set(`${list.id}:${normalizeName(exact)}`, this.now());
+        await this.client.addItem(list.id, exact, detail);
+        result = { item: exact, list, alreadyOnList: false };
       }
     } catch (err) {
       throw this.translate(err);

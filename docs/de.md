@@ -101,7 +101,8 @@ Start aus). Ein abgehakter und wieder hinzugefügter Artikel zählt erneut.
 Höchstens zwanzig Ereignisse pro Liste und Lesevorgang (ein Rezept, das
 dreißig Zutaten hinzufügt).
 
-- Filter: **Einkaufsliste** (leer: beliebig), **Name des Artikels** (genauer
+- Filter: **Einkaufsliste** (ein Listengerät; ein Haushaltsgerät passt nie;
+  leer: beliebig), **Name des Artikels** (genauer
   Name, leer: beliebig).
 - Variablen: `item` (Artikel), `description`, `list_name` (Liste),
   `added_by` (der KitchenOwl-Name des Mitglieds) und `from_gladys` (wahr,
