@@ -30,6 +30,16 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+The integration stores a KitchenOwl **long-lived token** in the Gladys
+configuration (a `secret` field): anyone holding it can read and change the
+shopping lists, recipes and meal plan of the user's households. It never
+writes the token to the logs or to `/data`, which holds only the ids of the
+items already seen on each list (`kitchenowl-state.json`). It talks to the
+KitchenOwl address entered in the configuration, and to nothing else; the
+option "Accept self-signed certificates" turns off the certificate check for
+that address only.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and KitchenOwl itself (see its
+[repository](https://github.com/TomBursch/kitchenowl)).

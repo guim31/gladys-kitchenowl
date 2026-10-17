@@ -1,0 +1,97 @@
+[
+  {
+    "created_at": 1792242648518,
+    "household_id": 1,
+    "id": 1,
+    "items": [
+      {
+        "category_id": null,
+        "created_at": 1792242648734,
+        "created_by": 1,
+        "default": false,
+        "default_key": null,
+        "description": "2 L",
+        "household_id": 1,
+        "icon": null,
+        "id": 1,
+        "name": "Lait",
+        "ordering": 0,
+        "support": 0,
+        "updated_at": 1792242648734
+      },
+      {
+        "category_id": null,
+        "created_at": 1792242648979,
+        "created_by": 1,
+        "default": false,
+        "default_key": null,
+        "description": "1 kg",
+        "household_id": 1,
+        "icon": null,
+        "id": 4,
+        "name": "Tomates",
+        "ordering": 0,
+        "support": 0,
+        "updated_at": 1792242648979
+      },
+      {
+        "category_id": null,
+        "created_at": 1792242648886,
+        "created_by": 1,
+        "default": false,
+        "default_key": null,
+        "description": "12",
+        "household_id": 1,
+        "icon": null,
+        "id": 3,
+        "name": "Œufs",
+        "ordering": 0,
+        "support": 0,
+        "updated_at": 1792242648886
+      }
+    ],
+    "name": "Default",
+    "recentItems": [
+      {
+        "category_id": null,
+        "created_at": 1792242648797,
+        "default": false,
+        "default_key": null,
+        "description": "",
+        "household_id": 1,
+        "icon": null,
+        "id": 2,
+        "name": "Pain",
+        "ordering": 0,
+        "support": 0,
+        "updated_at": 1792242648797
+      }
+    ],
+    "updated_at": 1792242648518
+  },
+  {
+    "created_at": 1792242648636,
+    "household_id": 1,
+    "id": 2,
+    "items": [
+      {
+        "category_id": null,
+        "created_at": 1792242649138,
+        "created_by": 1,
+        "default": false,
+        "default_key": null,
+        "description": "M4",
+        "household_id": 1,
+        "icon": null,
+        "id": 5,
+        "name": "Vis",
+        "ordering": 0,
+        "support": 0,
+        "updated_at": 1792242649138
+      }
+    ],
+    "name": "Bricolage",
+    "recentItems": [],
+    "updated_at": 1792242648636
+  }
+]

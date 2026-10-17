@@ -32,15 +32,21 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+src/app.js                        registers every SDK handler on the hub (tests drive the same wiring)
+src/hub.js                        reading timer, devices, states, "item added" event, add/check off
+src/devices.js                    device blueprints (lists, households), feature names, states
+src/widgets.js                    the "shopping_list" widget (manifest `widgets`)
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/texts.js                      every text sent to Gladys outside the widget, four languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/store.js                      /data/kitchenowl-state.json: the items already seen per list
+src/kitchenowl/client.js          KitchenOwl REST client and error kinds
+src/kitchenowl/http.js            node:http(s) request (self-signed certificate option)
+src/kitchenowl/model.js           pure parsing of the answers, local day, name matching
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, against the SDK's fake Gladys and test/helpers/fakeKitchenOwl.js
+test/fixtures/kitchenowl/         real answers of tombursch/kitchenowl (API 124, 17/10/2026)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +76,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in four languages (English, French, German with
+  "du", Spanish with "usted"): manifest, widget content, messages, feature
+  names, and `docs/en.md`, `fr.md`, `de.md`, `es.md` with the same sections.
+  `test/i18n.test.js` checks it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +241,31 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## KitchenOwl (vérifié le 17/10/2026, image `tombursch/kitchenowl`, API 124)
+
+- **Jeton** : un jeton longue durée (`POST /api/auth/llt`, ou dans l'app : profil → Sessions), en
+  `Authorization: Bearer`. Sans en-tête : 401 `{ msg }`. Jeton mal formé ou falsifié : **422**
+  `{ msg: "Not enough segments" | "Signature verification failed" }` (flask-jwt-extended), pas 401 :
+  le client traite un 422 JSON avec `msg` comme un refus de jeton.
+- Liste ou chemin inconnu : **404 en texte** (`Requested resource not found`), pas de JSON. En dehors
+  de `/api`, l'app web répond sa page HTML en 200.
+- `GET /api/household/{id}/shoppinglist` renvoie les listes **avec leurs articles** (`items`) : une
+  seule requête par foyer. `/api/shoppinglist/{id}/items` est déprécié. `recent_limit=1` limite les
+  « articles récents » joints, inutiles ici.
+- Un article de liste porte `created_at` (date de sa **mise sur la liste**, nouvelle à chaque
+  remise) et `created_by` (id du membre). La clé `id@created_at` détecte un article coché puis remis.
+- `add-item-by-name` réutilise l'article du foyer de même nom, mais la comparaison passe par le
+  `lower()` de SQLite, **ASCII seulement** : « oeufs » ou « œufs » ne retrouvent pas « Œufs » et
+  créeraient un doublon au catalogue. L'intégration compare elle-même (accents et casse ignorés)
+  aux articles de la liste **et aux 120 derniers cochés** (`recentItems`, `recent_limit=120`), puis
+  envoie le nom exact trouvé.
+  Un article déjà sur la liste est ignoré **sans mettre à jour sa description** : passer par
+  `POST /api/shoppinglist/{id}/item/{itemId}` `{ description }`.
+- `DELETE /api/shoppinglist/{id}/item` répond `{ msg: "DONE" }` même si l'article n'y est pas.
+- Planning : `cooking_date` est **un jour**, à minuit UTC (date naïve côté serveur), à comparer au
+  jour local de Gladys en `AAAA-MM-JJ`, jamais comme un instant. Une recette « un jour » a la date
+  0001-01-01 (`-62135596800000`). `POST /api/household/{id}/recipe` exige `description` (500 sinon).
+- La route de santé publique est `/api/health/8M4F88S8ooi4sMbLBfkkV7ctWwgibW6V` (clé fixe du code).
+- Pour un serveur de test : `POST /api/onboarding` (premier utilisateur, admin) rend un jeton
+  d'accès, puis `POST /api/auth/llt { device }` le jeton longue durée, `POST /api/household`.
