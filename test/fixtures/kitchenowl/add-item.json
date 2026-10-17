@@ -1,0 +1,13 @@
+{
+  "category_id": null,
+  "created_at": 1792242648700,
+  "default": false,
+  "default_key": null,
+  "household_id": 1,
+  "icon": null,
+  "id": 1,
+  "name": "Lait",
+  "ordering": 0,
+  "support": 0,
+  "updated_at": 1792242648700
+}

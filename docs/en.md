@@ -1,61 +1,153 @@
-# Demo Devices Template
+# KitchenOwl
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Bring the shopping lists and the meal plan of your
+[KitchenOwl](https://kitchenowl.org) into Gladys: how many items are left to
+buy, what is cooked today and tomorrow. Add an item from the dashboard or
+from a scene ("the milk is finished"), check one off with a tap, and let a
+scene react when somebody puts something on the list.
 
-## What you get
+> **Feedback welcome.** This integration was tested against a real
+> KitchenOwl server (Docker image `tombursch/kitchenowl`, October 2026), not
+> yet in everyday use with a real Gladys. If something does not work as
+> described, please say so on the
+> [Gladys forum](https://community.gladysassistant.com) or in the
+> [issues](https://github.com/guim31/gladys-kitchenowl/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- Gladys Assistant 5.2.0 or later (the forms of the widget buttons).
+- A **self-hosted KitchenOwl**, reachable from Gladys (the Docker image
+  listens on port 8080).
+- A **long-lived token** of a KitchenOwl user. In KitchenOwl: your
+  **profile** → **Sessions** → **Long-lived tokens** → add one, name it
+  `Gladys`, and copy the token: KitchenOwl shows it only once.
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+The integration sees the households of this user, and adds or checks off
+items **as this user**. The hosted service `app.kitchenowl.org` offers the
+same API, but was not tested.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Set up
 
-## Actions
+1. In Gladys, **Integrations** → install **KitchenOwl**.
+2. In **Configuration**, enter the **address** of KitchenOwl
+   (`http://192.168.1.20:8080`, `https://owl.example.org`…; the address
+   copied from the browser works too) and the **long-lived token**.
+3. Options:
+   - **Accept self-signed certificates**: only for an `https://` address
+     whose certificate is self-signed, on your own server.
+   - **Refresh interval**: how often KitchenOwl is read, 30 seconds to 5
+     minutes (1 minute by default). Midnight is always followed on time.
+   - **Language of the feature names**: the names given to the features when
+     a device is added, and the texts sent to scenes (French by default).
+4. Save, then click **Test the connection**: it reports the households, the
+   lists and the number of items to buy.
+5. Open the **Discover** tab and add the devices you want.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+## Devices
 
-## Scenes
+**One device per shopping list** (`KitchenOwl Default`, `KitchenOwl
+Bricolage`…), with one feature:
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+| Feature      | Value                            |
+| ------------ | -------------------------------- |
+| Items to buy | the number of items on the list. |
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+**One device per household** (`KitchenOwl <household>`), for the meal plan:
+
+| Feature          | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| Today's meals    | the recipes planned today, separated by commas, or Nothing planned |
+| Tomorrow's meals | the same for tomorrow                                              |
+
+"Today" is the day in the time zone of Gladys. The recipes planned without a
+day ("some day") are not shown. With several households, the list devices
+carry the household name too.
+
+The values are sent only when they change (and every 12 hours otherwise). The
+device badge shows **Unreachable** when KitchenOwl does not answer.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Shopping list** widget shows a list: the number of items, the items
+with their description (nine, then a "More items" row), and four buttons:
+
+- **Add** opens a form (item, description): the item is put on the list,
+  never twice.
+- **Check off** opens a form listing the items: the chosen one is checked off.
+- The first two items have their own button, to check them off in one tap.
+
+In the widget settings, choose a list device, or a household device for its
+default list. Empty: the default list of the first household. The widget
+works even before any device is added to Gladys.
+
+## Scenes
+
+### Triggers
+
+**Item added to a KitchenOwl list**: an item was put on a shopping list, in
+KitchenOwl or from Gladys. The items already on the lists when the
+integration starts do not count, and the integration remembers what it has
+seen across restarts (an item added while it was stopped fires at the next
+start). An item checked off then put back counts again. Twenty events per
+list and per reading at most (a recipe that adds thirty ingredients).
+
+- Filters: **Shopping list** (empty: any), **Item name** (exact name, empty:
+  any).
+- Variables: `item`, `description`, `list_name`, `added_by` (the KitchenOwl
+  name of the member) and `from_gladys` (true when the item was added by a
+  scene or the widget: lets a scene ignore its own additions).
+
+### Actions
+
+**Add to a KitchenOwl list**: puts an item on a list. Fields: **Item**
+(required), **Description** (a quantity, optional), **Shopping list** (a list
+device, or a household device for its default list; empty: the default list
+of the first household). An item already on the list (case and accents
+ignored) is not added twice: its description is replaced by the new one, if
+given. Outputs: `item`, `list_name`, `already_on_list`.
+
+**Check off a KitchenOwl item**: checks an item off a list, by name (case and
+accents ignored). Not on the list: nothing happens, and the output `removed`
+is false. Outputs: `item`, `list_name`, `removed`.
+
+The fields accept scene variables (`{{triggerEvent.data.item}}`…).
+
+### Scene ideas
+
+- A button by the coffee machine → **Add to a KitchenOwl list**, item
+  `Coffee`: the last capsule is never forgotten again.
+- **Item added to a KitchenOwl list**, list `Hardware` → send a message to
+  whoever goes to the DIY store: "{{triggerEvent.data.item}} added by
+  {{triggerEvent.data.added_by}}".
+- Every day at 17:00 → read **Today's meals** of the household device and
+  send it: dinner is known before leaving work.
+- **Items to buy** above 15 → a reminder that it is time to go shopping.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"token refused"**: the long-lived token was revoked or mistyped. Create a
+  new one in KitchenOwl and paste it again (a pasted "Bearer " prefix is
+  removed).
+- **"no KitchenOwl API at this address"**: something answers, but not
+  KitchenOwl. Check the port (8080 for the Docker image) and, behind a reverse
+  proxy, the path prefix.
+- **"KitchenOwl does not answer"**: wrong address, KitchenOwl stopped, or a
+  firewall between Gladys and KitchenOwl.
+- **"certificate refused"**: tick **Accept self-signed certificates**.
+- **"The token user belongs to no KitchenOwl household"**: create a household
+  in KitchenOwl, or use a token of a member.
+- **A new list does not show up**: click **Search** in the Discover tab, or
+  wait for the next reading.
+- Details are in the integration logs (`LOG_LEVEL=debug` for every reading).
+
+## Limits
+
+- The integration reads KitchenOwl on a timer (30 s to 5 min): an item added
+  in KitchenOwl reaches Gladys within that delay. It does not use the
+  real-time channel of KitchenOwl.
+- The meal plan is read, not edited; expenses and recipes are not used.
+- A widget select lists the first 50 items of the list.
+- The feature names are given when a device is added: changing the language
+  afterwards does not rename them.
+- Tested against a real KitchenOwl server in Docker, not yet with a real
+  Gladys: feedback welcome.

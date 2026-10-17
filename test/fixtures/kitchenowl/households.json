@@ -1,0 +1,37 @@
+[
+  {
+    "created_at": 1792242648479,
+    "default_shopping_list": {
+      "created_at": 1792242648518,
+      "household_id": 1,
+      "id": 1,
+      "name": "Default",
+      "updated_at": 1792242648518
+    },
+    "description": null,
+    "expenses_feature": true,
+    "id": 1,
+    "language": null,
+    "link": null,
+    "member": [
+      {
+        "admin": true,
+        "created_at": 1792242648335,
+        "expense_balance": 0,
+        "id": 1,
+        "last_seen": 1792242649171,
+        "name": "Alice",
+        "owner": true,
+        "photo": null,
+        "updated_at": 1792242649174,
+        "username": "alice"
+      }
+    ],
+    "name": "Maison",
+    "photo": null,
+    "planner_feature": true,
+    "updated_at": 1792242648479,
+    "verified": false,
+    "view_ordering": []
+  }
+]

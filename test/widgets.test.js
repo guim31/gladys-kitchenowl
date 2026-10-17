@@ -1,77 +1,162 @@
+// -----------------------------------------------------------------------------
+// The "Shopping list" widget: content within the core budget (validated by
+// the SDK's validateWidgetContent), the list chosen in the settings, the
+// "Add" and "Check off" forms, the direct check buttons, the degraded states.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { buildDevices } from '../src/devices.js';
+import { createWorld, householdId, listId } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function world(t, options = {}) {
+  const w = await createWorld(options);
+  t.after(() => w.app.stop());
+  return w;
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+async function content(w, settings = {}, language = 'en') {
+  const ack = await w.fake.widgetGet('shopping_list', { settings, language, units: 'metric' });
+  assert.equal(ack.success, true, ack.error);
+  const { content: tree } = ack.data;
+  assert.deepEqual(validateWidgetContent(tree), [], 'within the core vocabulary and budget');
+  return tree;
+}
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
+const ofType = (data, type) => data.components.filter((component) => component.type === type);
+const texts = (data) => ofType(data, 'text').map((component) => component.text);
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
-  }
-});
+async function tap(w, button, values) {
+  const ack = await w.fake.widgetAction('shopping_list', button.action.key, button.action.params, {
+    settings: {},
+    values,
+  });
+  assert.equal(ack.success, true, ack.error);
+  return ack.data;
+}
 
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('the default list: count, items, Add, Check off and two direct checks', async (t) => {
+  const w = await world(t);
+  const data = await content(w);
+  assert.ok(data.components.length <= 8);
+  assert.deepEqual(
+    ofType(data, 'value').map((tile) => [tile.label, tile.value]),
+    [['Default', 3]],
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
+  assert.deepEqual(
+    ofType(data, 'status')[0].items.map((row) => [row.label, row.value]),
+    [
+      ['Lait', '2 L'],
+      ['Tomates', '1 kg'],
+      ['Œufs', '12'],
+    ],
+  );
+  const buttons = ofType(data, 'button');
+  assert.deepEqual(
+    buttons.map((button) => [button.label, button.action.key]),
+    [
+      ['Add', 'add'],
+      ['Check off', 'check'],
+      ['Lait', 'check_1'],
+      ['Tomates', 'check_2'],
+    ],
+  );
+  assert.deepEqual(
+    buttons[1].action.fields[0].options.map((option) => option.value),
+    ['1', '4', '3'],
+  );
+  // The household device and the default list device are the same view.
+  assert.deepEqual(await content(w, { device: householdId(w.gladys).device }), data);
+  assert.deepEqual(await content(w, { device: listId(w.gladys, 1).device }), data);
 });
 
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
+test('another list, in another language', async (t) => {
+  const w = await world(t);
+  const data = await content(w, { device: listId(w.gladys, 2).device }, 'fr');
+  assert.deepEqual(
+    ofType(data, 'button').map((button) => button.label),
+    ['Ajouter', 'Cocher', 'Vis'],
+  );
+  assert.equal(ofType(data, 'value')[0].label, 'Bricolage');
 });
 
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+test('"Add" puts the typed item on the list and answers in four languages', async (t) => {
+  const w = await world(t);
+  const [add] = ofType(await content(w, { device: listId(w.gladys, 2).device }), 'button');
+  const answer = await tap(w, add, { name: 'Chevilles', description: '8 mm' });
+  assert.deepEqual(Object.keys(answer.message), ['en', 'fr', 'de', 'es']);
+  assert.equal(answer.message.fr, '« Chevilles » ajouté à Bricolage.');
+  assert.ok(w.server.list(2).items.some((item) => item.name === 'Chevilles'));
+  const again = await tap(w, add, { name: 'chevilles' });
+  assert.equal(again.message.en, '"Chevilles" is already on Bricolage.');
+});
+
+test('"Check off" removes the chosen item; a direct check removes its own item', async (t) => {
+  const w = await world(t);
+  const buttons = ofType(await content(w), 'button');
+  const answer = await tap(w, buttons[1], { item: '3' });
+  assert.equal(answer.message.en, '"Œufs" checked off Default.');
+  assert.ok(!w.server.list(1).items.some((item) => item.id === 3));
+  await tap(w, buttons[2]);
+  assert.deepEqual(
+    w.server.list(1).items.map((item) => item.name),
+    ['Tomates'],
+  );
+  // A stale widget: the item is gone already. Nothing else is removed.
+  const stale = await tap(w, buttons[2]);
+  assert.equal(stale.message.en, '"Lait" is no longer on Default.');
+  assert.deepEqual(
+    w.server.list(1).items.map((item) => item.name),
+    ['Tomates'],
   );
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('a long list shows nine rows and a "more" row', async (t) => {
+  const w = await world(t);
+  for (let i = 0; i < 12; i += 1) {
+    w.server.addAs(1, `Article ${i}`);
+  }
+  await w.hub.poll();
+  const rows = ofType(await content(w), 'status')[0].items;
+  assert.equal(rows.length, 10);
+  assert.deepEqual([rows[9].label, rows[9].value], ['More items', 6]);
+});
+
+test('an empty list: a sentence and the Add button only', async (t) => {
+  const w = await world(t);
+  w.server.list(2).items = [];
+  await w.hub.poll();
+  const data = await content(w, { device: listId(w.gladys, 2).device });
+  assert.deepEqual(texts(data), ['The list is empty.']);
+  assert.deepEqual(
+    ofType(data, 'button').map((button) => button.action.key),
+    ['add'],
+  );
+});
+
+test('degraded states: not configured, unknown list, KitchenOwl down', async (t) => {
+  const none = await world(t, { config: {} });
+  assert.match(texts(await content(none))[0], /Enter the address of your KitchenOwl/);
+
+  const w = await world(t);
+  assert.match(
+    texts(await content(w, { device: listId(w.gladys, 42).device }))[0],
+    /no longer exists/,
+  );
+  w.server.online = false;
+  await w.hub.poll();
+  const stale = await content(w);
+  assert.deepEqual(texts(stale), ['KitchenOwl does not answer: last known list.']);
+  assert.equal(ofType(stale, 'button').length, 0, 'no button while KitchenOwl is down');
+});
+
+test('every list a widget can show is a published device', async (t) => {
+  const w = await world(t);
+  const devices = buildDevices(w.gladys, w.hub.households, w.hub.lists, 'en').map(
+    (device) => device.external_id,
+  );
+  for (const list of w.hub.lists) {
+    assert.ok(devices.includes(listId(w.gladys, list.id).device));
+  }
 });

@@ -1,177 +1,556 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "KitchenOwl",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "KitchenOwl shopping lists and meal plan: items to buy, today's meals, add or check off items.",
+    "fr": "Listes de courses et repas KitchenOwl : articles à acheter, repas du jour, ajout et retrait.",
+    "de": "KitchenOwl-Einkaufslisten und Essensplan: zu kaufende Artikel, heutige Mahlzeiten, Artikelpflege.",
+    "es": "Listas de la compra y menú de KitchenOwl: artículos por comprar, comidas de hoy, añadir o marcar."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-kitchenowl:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-kitchenowl/main/cover.png",
+  "categories": ["services"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your KitchenOwl",
+        "fr": "Votre KitchenOwl",
+        "de": "Dein KitchenOwl",
+        "es": "Su KitchenOwl"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "A self-hosted KitchenOwl. In KitchenOwl, create a long-lived token: Profile, Sessions, Long-lived tokens. Items are added as the user of the token.",
+        "fr": "Un KitchenOwl auto-hébergé. Dans KitchenOwl, créez un jeton longue durée : Profil, Sessions, Jetons longue durée. Les articles sont ajoutés au nom de l'utilisateur du jeton.",
+        "de": "Ein selbst gehostetes KitchenOwl. Erstelle in KitchenOwl ein langlebiges Token: Profil, Sitzungen, Langlebige Token. Artikel werden im Namen des Token-Benutzers hinzugefügt.",
+        "es": "Un KitchenOwl autoalojado. En KitchenOwl, cree un token de larga duración: Perfil, Sesiones, Tokens de larga duración. Los artículos se añaden en nombre del usuario del token."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://docs.kitchenowl.org/",
+          "label": {
+            "en": "KitchenOwl documentation",
+            "fr": "Documentation de KitchenOwl",
+            "de": "KitchenOwl-Dokumentation",
+            "es": "Documentación de KitchenOwl"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Address",
+        "fr": "Adresse",
+        "de": "Adresse",
+        "es": "Dirección"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
+      "description": {
+        "en": "Address of KitchenOwl, with https:// for HTTPS and :port if not the default (8080 for the Docker image).",
+        "fr": "Adresse de KitchenOwl, avec https:// pour le HTTPS et :port s'il n'est pas standard (8080 pour l'image Docker).",
+        "de": "Adresse von KitchenOwl, mit https:// für HTTPS und :Port, falls nicht Standard (8080 beim Docker-Image).",
+        "es": "Dirección de KitchenOwl, con https:// para HTTPS y :puerto si no es el estándar (8080 para la imagen Docker)."
+      },
+      "placeholder": {
+        "en": "e.g. http://192.168.1.20:8080",
+        "fr": "ex. http://192.168.1.20:8080",
+        "de": "z. B. http://192.168.1.20:8080",
+        "es": "p. ej. http://192.168.1.20:8080"
+      },
       "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "default": ""
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "api_token",
+      "type": "secret",
+      "label": {
+        "en": "Long-lived token",
+        "fr": "Jeton longue durée",
+        "de": "Langlebiges Token",
+        "es": "Token de larga duración"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "Created in KitchenOwl: Profile, Sessions, Long-lived tokens. Shown once only.",
+        "fr": "Créé dans KitchenOwl : Profil, Sessions, Jetons longue durée. Affiché une seule fois.",
+        "de": "Erstellt in KitchenOwl: Profil, Sitzungen, Langlebige Token. Wird nur einmal angezeigt.",
+        "es": "Creado en KitchenOwl: Perfil, Sesiones, Tokens de larga duración. Se muestra una sola vez."
+      },
+      "required": true
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      }
+    },
+    {
+      "key": "allow_self_signed",
+      "type": "boolean",
+      "label": {
+        "en": "Accept self-signed certificates",
+        "fr": "Accepter les certificats auto-signés",
+        "de": "Selbstsignierte Zertifikate akzeptieren",
+        "es": "Aceptar certificados autofirmados"
+      },
+      "description": {
+        "en": "For an https:// address whose certificate is self-signed. Tick only for your own server.",
+        "fr": "Pour une adresse en https:// dont le certificat est auto-signé. À cocher pour votre propre serveur seulement.",
+        "de": "Für eine https://-Adresse mit selbstsigniertem Zertifikat. Nur für deinen eigenen Server aktivieren.",
+        "es": "Para una dirección https:// con certificado autofirmado. Márquelo solo para su propio servidor."
+      },
       "required": false,
-      "default": "celsius",
+      "default": false
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often KitchenOwl is read. Midnight is always followed on time.",
+        "fr": "Fréquence de lecture de KitchenOwl. Minuit est toujours suivi à l'heure.",
+        "de": "Wie oft KitchenOwl gelesen wird. Mitternacht wird immer pünktlich berücksichtigt.",
+        "es": "Con qué frecuencia se lee KitchenOwl. La medianoche se sigue siempre a tiempo."
+      },
+      "required": false,
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de funciones"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Names given to the features when a device is added, and texts sent to scenes.",
+        "fr": "Noms donnés aux fonctionnalités à l'ajout d'un appareil, et textes envoyés aux scènes.",
+        "de": "Namen der Funktionen beim Hinzufügen eines Geräts und an Szenen gesendete Texte.",
+        "es": "Nombres de las funciones al añadir un dispositivo y textos enviados a las escenas."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads KitchenOwl now and reports what it finds.",
+        "fr": "Lit KitchenOwl maintenant et indique ce qu'il trouve.",
+        "de": "Liest KitchenOwl sofort und meldet, was es findet.",
+        "es": "Lee KitchenOwl ahora e indica lo que encuentra."
+      },
       "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "item_added",
+      "label": {
+        "en": "Item added to a KitchenOwl list",
+        "fr": "Article ajouté à une liste KitchenOwl",
+        "de": "Artikel zu einer KitchenOwl-Liste hinzugefügt",
+        "es": "Artículo añadido a una lista de KitchenOwl"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "An item was put on a shopping list, in KitchenOwl or from Gladys. Nothing fires for the items already there at start.",
+        "fr": "Un article a été mis sur une liste de courses, dans KitchenOwl ou depuis Gladys. Rien ne part pour les articles déjà présents au démarrage.",
+        "de": "Ein Artikel wurde auf eine Einkaufsliste gesetzt, in KitchenOwl oder über Gladys. Für Artikel, die beim Start schon da sind, wird nichts ausgelöst.",
+        "es": "Se ha puesto un artículo en una lista de la compra, en KitchenOwl o desde Gladys. No se dispara nada por los artículos ya presentes al inicio."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "list",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Shopping list (empty: any)",
+            "fr": "Liste de courses (vide : toutes)",
+            "de": "Einkaufsliste (leer: beliebig)",
+            "es": "Lista de la compra (vacía: cualquiera)"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item name (empty: any)",
+            "fr": "Nom de l'article (vide : tous)",
+            "de": "Name des Artikels (leer: beliebig)",
+            "es": "Nombre del artículo (vacío: cualquiera)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "item",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Artikel",
+            "es": "Artículo"
+          }
+        },
+        {
+          "key": "description",
+          "type": "string",
+          "label": {
+            "en": "Description",
+            "fr": "Description",
+            "de": "Beschreibung",
+            "es": "Descripción"
+          }
+        },
+        {
+          "key": "list_name",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          }
+        },
+        {
+          "key": "added_by",
+          "type": "string",
+          "label": {
+            "en": "Added by",
+            "fr": "Ajouté par",
+            "de": "Hinzugefügt von",
+            "es": "Añadido por"
+          }
+        },
+        {
+          "key": "from_gladys",
+          "type": "boolean",
+          "label": {
+            "en": "Added from Gladys",
+            "fr": "Ajouté depuis Gladys",
+            "de": "Über Gladys hinzugefügt",
+            "es": "Añadido desde Gladys"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "add_item",
+      "label": {
+        "en": "Add to a KitchenOwl list",
+        "fr": "Ajouter à une liste KitchenOwl",
+        "de": "Zu einer KitchenOwl-Liste hinzufügen",
+        "es": "Añadir a una lista de KitchenOwl"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Puts an item on a shopping list. Already there: it is not added twice, its description is updated.",
+        "fr": "Met un article sur une liste de courses. Déjà présent : il n'est pas ajouté deux fois, sa description est mise à jour.",
+        "de": "Setzt einen Artikel auf eine Einkaufsliste. Schon vorhanden: Er wird nicht doppelt hinzugefügt, seine Beschreibung wird aktualisiert.",
+        "es": "Pone un artículo en una lista de la compra. Si ya está, no se añade dos veces y se actualiza su descripción."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
-          "key": "device",
+          "key": "item",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Artikel",
+            "es": "Artículo"
+          },
+          "description": {
+            "en": "The name of the item, e.g. Milk.",
+            "fr": "Le nom de l'article, ex. Lait.",
+            "de": "Der Name des Artikels, z. B. Milch.",
+            "es": "El nombre del artículo, p. ej. Leche."
+          }
+        },
+        {
+          "key": "description",
+          "type": "string",
+          "label": {
+            "en": "Description (optional)",
+            "fr": "Description (facultative)",
+            "de": "Beschreibung (optional)",
+            "es": "Descripción (opcional)"
+          },
+          "description": {
+            "en": "A quantity or a detail, e.g. 2 L.",
+            "fr": "Une quantité ou une précision, ex. 2 L.",
+            "de": "Eine Menge oder ein Detail, z. B. 2 L.",
+            "es": "Una cantidad o un detalle, p. ej. 2 L."
+          }
+        },
+        {
+          "key": "list",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Shopping list (empty: default list)",
+            "fr": "Liste de courses (vide : liste par défaut)",
+            "de": "Einkaufsliste (leer: Standardliste)",
+            "es": "Lista de la compra (vacía: lista predeterminada)"
+          },
+          "description": {
+            "en": "A list device, or a household device for its default list.",
+            "fr": "Un appareil de liste, ou un appareil de foyer pour sa liste par défaut.",
+            "de": "Ein Listengerät oder ein Haushaltsgerät für dessen Standardliste.",
+            "es": "Un dispositivo de lista, o un dispositivo de hogar para su lista predeterminada."
+          }
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Artikel",
+            "es": "Artículo"
+          }
+        },
+        {
+          "key": "list_name",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          }
+        },
+        {
+          "key": "already_on_list",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Was already on the list",
+            "fr": "Était déjà sur la liste",
+            "de": "Stand schon auf der Liste",
+            "es": "Ya estaba en la lista"
+          }
+        }
+      ]
+    },
+    {
+      "key": "remove_item",
+      "label": {
+        "en": "Check off a KitchenOwl item",
+        "fr": "Cocher un article KitchenOwl",
+        "de": "KitchenOwl-Artikel abhaken",
+        "es": "Marcar un artículo de KitchenOwl"
+      },
+      "description": {
+        "en": "Checks an item off a shopping list, by name (case and accents ignored). Not on the list: nothing happens.",
+        "fr": "Coche un article d'une liste de courses, par son nom (majuscules et accents ignorés). Absent de la liste : rien ne se passe.",
+        "de": "Hakt einen Artikel auf einer Einkaufsliste ab, nach Namen (Groß- und Kleinschreibung und Akzente egal). Nicht auf der Liste: Nichts passiert.",
+        "es": "Marca un artículo de una lista de la compra, por su nombre (sin distinguir mayúsculas ni acentos). Si no está en la lista, no pasa nada."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "item",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Artikel",
+            "es": "Artículo"
+          }
+        },
+        {
+          "key": "list",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Shopping list (empty: default list)",
+            "fr": "Liste de courses (vide : liste par défaut)",
+            "de": "Einkaufsliste (leer: Standardliste)",
+            "es": "Lista de la compra (vacía: lista predeterminada)"
+          },
+          "description": {
+            "en": "A list device, or a household device for its default list.",
+            "fr": "Un appareil de liste, ou un appareil de foyer pour sa liste par défaut.",
+            "de": "Ein Listengerät oder ein Haushaltsgerät für dessen Standardliste.",
+            "es": "Un dispositivo de lista, o un dispositivo de hogar para su lista predeterminada."
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "key": "item",
+          "type": "string",
+          "label": {
+            "en": "Item",
+            "fr": "Article",
+            "de": "Artikel",
+            "es": "Artículo"
+          }
+        },
+        {
+          "key": "list_name",
+          "type": "string",
+          "label": {
+            "en": "Shopping list",
+            "fr": "Liste de courses",
+            "de": "Einkaufsliste",
+            "es": "Lista de la compra"
+          }
+        },
+        {
+          "key": "removed",
+          "type": "boolean",
+          "label": {
+            "en": "Checked off",
+            "fr": "Coché",
+            "de": "Abgehakt",
+            "es": "Marcado"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "shopping_list",
+      "label": {
+        "en": "Shopping list",
+        "fr": "Liste de courses",
+        "de": "Einkaufsliste",
+        "es": "Lista de la compra"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "The items to buy, with buttons to add an item and to check one off.",
+        "fr": "Les articles à acheter, avec des boutons pour ajouter un article et en cocher un.",
+        "de": "Die zu kaufenden Artikel, mit Tasten zum Hinzufügen und Abhaken.",
+        "es": "Los artículos por comprar, con botones para añadir un artículo y marcar uno."
+      },
+      "icon": "shopping-cart",
+      "action_timeout_seconds": 20,
+      "settings": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "required": false,
+          "label": {
+            "en": "Shopping list (empty: default list)",
+            "fr": "Liste de courses (vide : liste par défaut)",
+            "de": "Einkaufsliste (leer: Standardliste)",
+            "es": "Lista de la compra (vacía: lista predeterminada)"
+          },
+          "description": {
+            "en": "A list device, or a household device for its default list.",
+            "fr": "Un appareil de liste, ou un appareil de foyer pour sa liste par défaut.",
+            "de": "Ein Listengerät oder ein Haushaltsgerät für dessen Standardliste.",
+            "es": "Un dispositivo de lista, o un dispositivo de hogar para su lista predeterminada."
+          }
+        }
+      ]
     }
   ]
 }
