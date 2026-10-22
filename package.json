@@ -1,6 +1,6 @@
 {
   "name": "gladys-kitchenowl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "KitchenOwl shopping lists and meal plan in Gladys Assistant.",
   "type": "module",
